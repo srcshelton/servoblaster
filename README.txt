@@ -133,21 +133,6 @@ anything non-trivial with four servos connected pulls the 5 volts down far
 enough to crash the Pi.
 
 
-
-There are two implementations of ServoBlaster; a kernel module based one, and a
-user space daemon.  The kernel module based one is the original, but is more of
-a pain to build because you need a matching kernel build.  The user space
-daemon implementation is much more convenient to use and now has rather more
-features than the kernel based one.  I would strongly recommend you use the
-user space implementation.
-
-The kernel module implementation is in the subdirectory 'kernel', while the
-user space implementation can be found in subdirectory 'user'.
-
-Details specific to each implementation are provided in separate sections
-below.
-
-
 The user space daemon
 ---------------------
 
@@ -319,101 +304,6 @@ $ sudo make install
 You may wish to edit /etc/init.d/servoblaster to change the parameters that are
 specified in that script (e.g.  the idle-timeout, which is set to 2 seconds in
 the shipped version of that script).
-
-
-
-The kernel space implementation
--------------------------------
-
-Please note that the user space implementation is the preferred one to use and
-the kernel implementation (servoblaster.ko) has been depreciated.
-
-The kernel implementation is missing most of the command line options available
-in the user space implementation, and always uses the default set of 8 pins
-described above.  In addition, the kernel implementation only supports the
-first command format described above.
-
-Upon reading /dev/servoblaster, the device file provides feedback as to what
-position each servo is currently set.  For example, after starting the driver
-and sending the command "3=120", you would see:
-
-pi@raspberrypi ~ $ cat /dev/servoblaster
-0 0
-1 0
-2 0
-3 120
-4 0
-5 0
-6 0
-7 0
-pi@raspberrypi ~ $ 
-
-Please read the driver source for more details.  The comments at the top of
-servoblaster.c also explain how to make your system create the
-/dev/servoblaster device node automatically when the driver is loaded.
-Alternatively running "make install" in the driver source directory will also
-create the necessary files.  Further to this, running "make install_autostart"
-will create those files, plus perform the necessary changes to make
-servoblaster be automatically loaded at boot.
-
-If you wish to compile the module yourself, the approach I took was to run
-rpi-update to get the latest kernel from github, then follow the instructions
-on the wiki (http://elinux.org/RPi_Kernel_Compilation) to compile the kernel,
-then edit the servoblaster Makefile to point at your kernel tree, then build
-servoblaster.
-
-As the mapping of GPIO to P1 header pins changed between Rev 1 and Rev 2
-boards, you will need to modify servoblaster.c appropriately for your board.
-Please uncomment the define for REV_1 or REV_2 as appropriate.
-
-It is not currently possible to make the kernel implementation use the PCM
-hardware rather than the PWM hardware, therefore it will interfere with 3.5mm
-jack audio output.
-
-Some people have requested that a servo output turns off automatically if no
-new pulse width has been requested recently, and I've had two reports of
-servos overheating when driven for long periods of time.  To support this
-request, ServoBlaster implements an idle timeout which can be specified at
-module load time.  The value is specified in milliseconds, so if you want
-to drive your servos for 2 seconds following each new width request you would
-do this:
-
-sudo insmod ./servoblaster.ko idle_timeout=2000
-
-Typical small servos take a few 100 milliseconds to rotate from one extreme
-to the other, so for small values of idle_timeout you might find the control
-pulse is turned off before your servo has reached the required position.
-idle_timeout defaults to 0, which disables the feature.
-
-NOTE: There is some doubt over how to configure the PWM clock at present.  For
-me the clock is 600KHz, which leads to a tick length of 10us.  However at least
-one person has reported that the pulses are out by about a factor of about 8,
-and so are repeated every 2.5ms rather than every 20ms.  To work round this I
-have added two module parameters:
-
-tick_scale defaults to 6, which should be a divisor of 600KHz, which should
-give a tick of 10us.  You set the pulse width in ticks (echo 2=27 >
-/dev/servoblaster to set 27 ticks).
-
-cycle_ticks is the cycle time in ticks, and defaults to 2000 to give 20ms if
-one tick is 10us.  cycle_ticks should be a multiple of 8.  The max pulse width
-you can specify by writing to /dev/servoblaster is (cycle_ticks/8 - 1), so for
-the default parameters it is 249, or 2.49ms.
-
-For example:
-
-sudo insmod ./servoblaster.ko tick_scale=48
-
-should slow it down by a factor of 8 (6*8=48).
-
-If you can't get quite what you want with tick_scale, you can also tweak
-cycle_ticks.
-
-Eventually I might get round to letting you specify how many servo control
-outputs you want, and which outputs to use, via module parameters.
-
-As of August 30th 2012 the servoblaster.ko module is built against a 2.6.27+
-kernel source from github.
 
 
 Related projects:
