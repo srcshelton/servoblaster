@@ -877,11 +877,11 @@ parse_width(const int servo, const char *width_arg)
 		return -1;
 	}
 	width = floor(width);
-	if (*digits == '+') {
+	if (*od == '+') {
 		width = servowidth[servo] + width;
 		if (width > servo_max_ticks)
 			width = servo_max_ticks;
-	} else if (*digits == '-') {
+	} else if (*od == '-') {
 		width = servowidth[servo] - width;
 		if (width < servo_min_ticks)
 			width = servo_min_ticks;
@@ -959,11 +959,11 @@ go_go_go(void)
 					} else if (n != 2) {
 						fprintf(stderr, "ERROR: Unknown command '%.*s'\n", strlen(line) - 1, line);
 					} else if (servo < 0 || servo >= MAX_SERVOS) {
-						fprintf(stderr, "Invalid servo number '%d'\n", servo);
+						fprintf(stderr, "ERROR: Invalid servo number '%d'\n", servo);
 					} else if (servo2gpio[servo] == DMY) {
-						fprintf(stderr, "Servo '%d' is not mapped to a GPIO pin\n", servo);
+						fprintf(stderr, "ERROR: Servo '%d' is not mapped to a GPIO pin\n", servo);
 					} else if ((width = parse_width(servo, width_arg)) < 0) {
-						fprintf(stderr, "Invalid width '%s'\n", width_arg);
+						fprintf(stderr, "ERROR: Invalid width '%s'\n", width_arg);
 					} else {
 						set_servo(servo, width);
 					}
