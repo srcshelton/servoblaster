@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 #include "mailbox.h"
 
@@ -49,6 +50,7 @@ void *mapmem(unsigned base, unsigned size)
    int mem_fd;
    unsigned offset = base % PAGE_SIZE;
    base = base - offset;
+   size = size + offset;
    /* open /dev/mem */
    if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
       printf("can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
@@ -72,15 +74,16 @@ void *mapmem(unsigned base, unsigned size)
    return (char *)mem + offset;
 }
 
-void *unmapmem(void *addr, unsigned size)
+void unmapmem(void *addr, unsigned size)
 {
+   const intptr_t offset = (intptr_t)addr % PAGE_SIZE;
+   addr = (char *)addr - offset;
+   size = size + offset;
    int s = munmap(addr, size);
    if (s != 0) {
       printf("munmap error %d\n", s);
       exit (-1);
    }
-
-   return NULL;
 }
 
 /*
@@ -265,31 +268,16 @@ unsigned execute_qpu(int file_desc, unsigned num_qpus, unsigned control, unsigne
    return p[5];
 }
 
-int mbox_open(void) {
+int mbox_open() {
    int file_desc;
-   char filename[64];
 
    // open a char device file used for communicating with kernel mbox driver
-   if ((file_desc = open("/dev/vcio", 0)) >= 0) {
-      /* New kernel, we use /dev/vcio, major 249, since kernel 4.1 */
-      return file_desc;
-   }
-
-   /* Most likely an old kernel, so drop back to the old major=100 device */
-   sprintf(filename, "/tmp/mailbox-%d", getpid());
-   unlink(filename);
-   if (mknod(filename, S_IFCHR|0600, makedev(100, 0)) < 0) {
-      printf("Failed to create mailbox device %s: %m\n", filename);
-      return -1;
-   }
-   file_desc = open(filename, 0);
+   file_desc = open(DEVICE_FILE_NAME, 0);
    if (file_desc < 0) {
-      printf("Can't open device file %s: %m\n", filename);
-      unlink(filename);
-      return -1;
+      printf("Can't open device file: %s\n", DEVICE_FILE_NAME);
+      printf("Try creating a device file with: sudo mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
+      exit(-1);
    }
-   unlink(filename);
-
    return file_desc;
 }
 

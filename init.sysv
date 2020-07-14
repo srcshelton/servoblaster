@@ -14,8 +14,11 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 . /lib/init/vars.sh
 
 OPTS="--idle-timeout=2000"
+# Customise as necessary, e.g.
+#OPTS="--idle-timeout=1000 --p1pins=15,16,18,22 -s 5 -m 102 -x 444"
 
-STATUSFILE="/tmp/servoblaster-status"
+#STATUSFILE="/tmp/servoblaster-status"
+STATUSFILE="/run/servoblaster.status"
 
 if [ $( id -u ) != 0 ]; then
 	echo "ERROR: Must be run as root"
@@ -24,11 +27,11 @@ fi
 
 case "$1" in
   start)
-	/usr/local/sbin/servod $OPTS >/dev/null
+	/usr/local/sbin/servod --daemonise=1 $OPTS >/dev/null
 	;;
   restart|reload|force-reload)
 	killall servod
-	/usr/local/sbin/servod $OPTS >/dev/null
+	/usr/local/sbin/servod --daemonise=1 $OPTS >/dev/null
 	;;
   stop)
 	killall servod
@@ -61,4 +64,3 @@ case "$1" in
 esac
 
 exit 0
-
