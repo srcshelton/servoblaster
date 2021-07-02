@@ -1,7 +1,7 @@
 
 CC	 ?= gcc
 CPPFLAGS ?= -I/opt/vc/include
-CFLAGS	 ?= -Wall -Wextra -g -O2
+CFLAGS	 ?= -Wall -Wextra -g -O2 -mcpu=native
 LDFLAGS	 ?= -L/opt/vc/lib
 LIBS	 := -lm -lbcm_host
 
